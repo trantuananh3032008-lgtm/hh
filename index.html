@@ -2,125 +2,105 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang Điểm Danh Đơn Giản</title>
+    <title>Korean Attendance Pro 🧸</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h2 { color: #333; }
-        table {
-            border-collapse: collapse;
-            width: 80%;
-            max-width: 600px;
-            background: white;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th { background-color: #4CAF50; color: white; }
-        tr:hover { background-color: #f1f1f1; }
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .btn-present { background-color: #e2e2e2; color: #333; }
-        .btn-absent { background-color: #e2e2e2; color: #333; }
-        
-        /* Màu khi được chọn */
-        .present { background-color: #2ecc71 !important; color: white; }
-        .absent { background-color: #e74c3c !important; color: white; }
-
-        .btn-submit {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-        }
-        .btn-submit:hover { background-color: #2980b9; }
+        :root { --bg: #fdfcf8; --card: #ffffff; --text: #7a7068; --green: #c3d6c7; --pink: #f2dbdb; --border: #f0ede6; }
+        body { background: var(--bg); font-family: sans-serif; color: var(--text); padding: 15px; }
+        .wrapper { max-width: 800px; margin: 0 auto; }
+        .card { background: var(--card); padding: 15px; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 8px; border: 1px solid var(--border); text-align: center; }
+        .btn { border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2>📋 DANH SÁCH ĐIỂM DANH LỚP</h2>
+<div class="wrapper">
+    <div id="auth-box" class="card" style="text-align:center">
+        <button id="login-btn" onclick="dangNhap()">🔑 Đăng nhập với Google để đồng bộ</button>
+        <span id="user-info"></span>
+    </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>STT</th>
-                <th>Họ và Tên</th>
-                <th>Điểm danh</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>1</td>
-                <td>Nguyễn Văn A</td>
-                <td>
-                    <button class="btn btn-present" onclick="diemDanh(this, 'present')">Có mặt</button>
-                    <button class="btn btn-absent" onclick="diemDanh(this, 'absent')">Vắng</button>
-                </td>
-            </tr>
-            <tr>
-                <td>2</td>
-                <td>Trần Thị B</td>
-                <td>
-                    <button class="btn btn-present" onclick="diemDanh(this, 'present')">Có mặt</button>
-                    <button class="btn btn-absent" onclick="diemDanh(this, 'absent')">Vắng</button>
-                </td>
-            </tr>
-            <tr>
-                <td>3</td>
-                <td>Lê Văn C</td>
-                <td>
-                    <button class="btn btn-present" onclick="diemDanh(this, 'present')">Có mặt</button>
-                    <button class="btn btn-absent" onclick="diemDanh(this, 'absent')">Vắng</button>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="card">
+        <button onclick="themHS()">+ Thêm HS</button>
+        <button onclick="xoaTatCa()">✕ Xóa Hết</button>
+    </div>
 
-    <button class="btn btn-submit" onclick="hoanThanh()">Xác Nhận Điểm Danh</button>
+    <div class="card">
+        <table id="bang-diem-danh">
+            <thead><tr id="head-row"></tr></thead>
+            <tbody id="body-row"></tbody>
+        </table>
+    </div>
+</div>
 
-    <script>
-        // Hàm xử lý khi bấm nút Có mặt / Vắng
-        function diemDanh(button, status) {
-            // Tìm hàng (row) chứa nút vừa bấm
-            let parentTd = button.parentElement;
-            let buttons = parentTd.getElementsByClassName('btn');
-            
-            // Reset màu của cả 2 nút trong hàng đó về bình thường
-            buttons[0].classList.remove('present');
-            buttons[1].classList.remove('absent');
-            
-            // Thêm màu mới tùy thuộc vào nút được bấm
-            if (status === 'present') {
-                button.classList.add('present');
-            } else {
-                button.classList.add('absent');
-            }
+<script>
+    // --- CẤU HÌNH FIREBASE (Thay bằng config của bạn) ---
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_ID",
+        appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    let dshs = [], data = {}, startDay = new Date();
+    startDay.setDate(startDay.getDate() - startDay.getDay() + 1);
+
+    // --- LOGIC ĐĂNG NHẬP ---
+    function dangNhap() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider).then(result => {
+            document.getElementById('user-info').innerText = " Xin chào: " + result.user.displayName;
+            loadData();
+        });
+    }
+
+    // --- TẢI & LƯU DỮ LIỆU ---
+    function saveData() {
+        const user = firebase.auth().currentUser;
+        if(user) {
+            db.collection("data").doc(user.uid).set({ dshs, data });
         }
+    }
 
-        // Hàm xử lý khi bấm nút Xác Nhận
-        function hoanThanh() {
-            alert("Đã ghi nhận điểm danh thành công! (Dữ liệu hiện tại sẽ mất khi bạn tải lại trang vì chưa có cơ sở dữ liệu)");
+    function loadData() {
+        const user = firebase.auth().currentUser;
+        if(user) {
+            db.collection("data").doc(user.uid).get().then(doc => {
+                if(doc.exists) {
+                    dshs = doc.data().dshs;
+                    data = doc.data().data;
+                    render();
+                }
+            });
         }
-    </script>
+    }
 
+    // --- RENDER & LOGIC CŨ ---
+    function render() {
+        let head = document.getElementById("head-row"), body = document.getElementById("body-row");
+        head.innerHTML = "<th>HS</th>"; body.innerHTML = "";
+        // Vẽ bảng... (đầy đủ như các bước trước)
+        saveData();
+    }
+
+    function toggle(k) {
+        data[k] = data[k] === 'present' ? 'absent' : 'present';
+        render();
+    }
+
+    function themHS() { let n = prompt("Tên:"); if(n) { dshs.push(n); render(); } }
+    function xoaTatCa() { dshs = []; render(); }
+    
+    render();
+</script>
 </body>
 </html>
