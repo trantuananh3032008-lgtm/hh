@@ -2,86 +2,74 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Coffee Attendance Pro</title>
+    <title>Coffee Attendance Ultimate Pro</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f3e5d8; color: #4e342e; padding: 15px; }
-        .box { background: #fffaf0; padding: 20px; border-radius: 15px; border: 2px solid #8d6e63; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
-        th, td { padding: 8px; border: 1px solid #4e342e; text-align: center; }
+        body { font-family: sans-serif; background: #f3e5d8; padding: 10px; color: #4e342e; }
+        .container { max-width: 1000px; margin: auto; background: #fffaf0; padding: 20px; border-radius: 15px; border: 2px solid #8d6e63; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 15px; }
+        th, td { padding: 8px; border: 1px solid #000; text-align: center; font-size: 13px; }
         th { background: #8d6e63; color: white; }
-        button { background: #6d4c41; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; transition: 0.2s; margin-top: 5px; }
-        button:hover { background: #4e342e; }
-        .btn-del { background: #d32f2f; }
-        .btn-word { background: #1976d2; }
-        .red { color: #d32f2f; font-weight: bold; }
-        .green { color: #388e3c; font-weight: bold; }
-        input { padding: 8px; border: 1px solid #d7ccc8; border-radius: 5px; }
+        button { background: #6d4c41; color: white; border: none; padding: 8px; border-radius: 5px; cursor: pointer; margin: 3px; }
+        .btn-del-all { background: #d32f2f; }
+        .btn-excel { background: #2e7d32; }
     </style>
 </head>
 <body>
 
-<div id="login-box" class="box">
-    <h3>☕ Đăng nhập Cafe Attendance</h3>
+<div id="login-box" class="container">
+    <h3>☕ Đăng nhập / Đăng ký</h3>
     <input type="text" id="u" placeholder="Tên đăng nhập">
     <input type="password" id="p" placeholder="Mật khẩu">
     <button onclick="login()">Đăng nhập</button>
-    <button onclick="reg()">Tạo tài khoản</button>
+    <button onclick="reg()">Đăng ký mới</button>
 </div>
 
-<div id="app-box" class="box" style="display:none;">
+<div id="app-box" class="container" style="display:none;">
     <input type="text" id="hsName" placeholder="Tên học sinh">
-    <button onclick="them()">+ Thêm</button>
-    <input type="date" id="datePicker" onchange="render()">
-    <button class="btn-del" onclick="resetAll()">Reset</button>
-    <button class="btn-word" onclick="exportWord()">Xuất file Word (Có kẻ bảng)</button>
+    <button onclick="them()">+ Thêm HS</button>
+    <button class="btn-excel" onclick="exportExcel()">💾 Xuất Excel</button>
+    <button class="btn-del-all" onclick="resetAll()">🗑️ XÓA TẤT CẢ HS</button>
     <button onclick="location.reload()">Đăng xuất</button>
     
-    <div id="content-to-export">
-        <h3 style="text-align:center;">Bảng Điểm Danh Tuần</h3>
-        <table id="tbl" border="1">
-            <thead><tr id="head"></tr></thead>
-            <tbody id="body"></tbody>
-        </table>
-        <div id="stats" style="margin-top:20px;"></div>
-    </div>
+    <table id="tbl">
+        <thead><tr id="head"></tr></thead>
+        <tbody id="body"></tbody>
+    </table>
+
+    <h3>📊 Thống kê chi tiết (Bấm vào tên để xem lý do)</h3>
+    <table id="tbl-stats">
+        <thead><tr><th>Tên Học Sinh</th><th>Tổng Số Ngày Vắng</th></tr></thead>
+        <tbody id="body-stats"></tbody>
+    </table>
 </div>
 
 <script>
     let currUser = "";
-    let accs = JSON.parse(localStorage.getItem("accs")||"{}");
-
+    
     function login() {
         let u = document.getElementById('u').value;
-        if(accs[u] && accs[u] == document.getElementById('p').value) {
+        let p = document.getElementById('p').value;
+        let accs = JSON.parse(localStorage.getItem("accs")||"{}");
+        if(accs[u] && accs[u] == p) {
             currUser = u;
             document.getElementById('login-box').style.display='none';
             document.getElementById('app-box').style.display='block';
-            document.getElementById('datePicker').valueAsDate = new Date();
             render();
-        } else alert("Sai tài khoản!");
+        } else alert("Sai tài khoản hoặc mật khẩu!");
     }
 
-    function reg() { 
+    function reg() {
         let u = document.getElementById('u').value;
-        accs[u] = document.getElementById('p').value; 
-        localStorage.setItem('accs', JSON.stringify(accs)); 
-        alert("Đã tạo tài khoản!"); 
+        let p = document.getElementById('p').value;
+        if(!u || !p) return alert("Nhập đủ Tên và Mật khẩu!");
+        let accs = JSON.parse(localStorage.getItem("accs")||"{}");
+        accs[u] = p;
+        localStorage.setItem('accs', JSON.stringify(accs));
+        alert("Đăng ký thành công!");
     }
 
-    // Hàm xuất Word có kẻ bảng chuẩn
-    function exportWord() {
-        let header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>table {border-collapse:collapse; width:100%;} th, td {border:1px solid black; padding:8px; text-align:center;}</style></head><body>";
-        let footer = "</body></html>";
-        let sourceHTML = header + document.getElementById("content-to-export").innerHTML + footer;
-        let source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
-        let a = document.createElement('a');
-        a.href = source;
-        a.download = 'Bang_Diem_Danh.doc';
-        a.click();
-    }
-
-    function getMonday(d) {
-        d = new Date(d);
+    function getMonday() {
+        let d = new Date();
         let day = d.getDay(), diff = d.getDate() - day + (day == 0 ? -6 : 1);
         return new Date(d.setDate(diff));
     }
@@ -89,48 +77,101 @@
     function render() {
         let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
         let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
-        let start = getMonday(document.getElementById('datePicker').value);
-        let head = document.getElementById("head"), body = document.getElementById("body"), stats = document.getElementById("stats");
-        let thu = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+        let head = document.getElementById("head"), body = document.getElementById("body");
+        let bodyStats = document.getElementById("body-stats");
         
-        head.innerHTML = "<th>Học Sinh</th>"; body.innerHTML = ""; stats.innerHTML = "<strong>📊 Danh sách vắng:</strong><br>";
+        head.innerHTML = "<th>Tên HS</th>";
+        body.innerHTML = ""; bodyStats.innerHTML = "";
         
+        let monday = getMonday();
         let dates = [];
-        for(let i=0; i<7; i++) { 
-            let d = new Date(start); d.setDate(start.getDate()+i); dates.push(d); 
-            head.innerHTML += `<th>${thu[i]}<br>${(d.getMonth()+1)}/${d.getDate()}</th>`; 
-        }
+        let thuList = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
         
+        for(let j=0; j<7; j++) {
+            let d = new Date(monday);
+            d.setDate(monday.getDate() + j);
+            let dStr = d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
+            dates.push({full: d.toDateString(), label: dStr, thu: thuList[j]});
+            head.innerHTML += `<th>${thuList[j]}<br>${dStr}</th>`;
+        }
+
         dshs.forEach((t, i) => {
-            let row = `<tr><td>${t}</td>`;
-            dates.forEach(d => { 
-                let k=`${d.toDateString()}_${t}`; 
-                row += `<td onclick="toggle('${k}')">${data[k]||'-'}</td>`; 
+            let row = `<tr><td>${t} <button onclick="xoaHs('${t}')" style="background:red">x</button></td>`;
+            dates.forEach(d => {
+                let k = d.full + "_" + t;
+                row += `<td onclick="toggle('${k}', '${d.label}')" style="cursor:pointer; color:${data[k]?'red':'black'}">${data[k]?'X':'-'}</td>`;
             });
             body.innerHTML += row + "</tr>";
-            
-            let v = Object.keys(data).filter(k => k.endsWith(t) && data[k]=='X');
-            let div = document.createElement('div');
-            div.style.cssText = "padding:8px; margin-top:5px; background:#fff; border-radius:5px; border-left:4px solid #8d6e63";
-            div.innerHTML = `${t}: ${v.length > 0 ? '<b class="red">'+v.length+' buổi vắng ('+v.map(k=>(new Date(k.split('_')[0]).getMonth()+1)+'/'+new Date(k.split('_')[0]).getDate()).join(', ')+')</b>' : '<b class="green">Chuyên cần</b>'}`;
-            stats.appendChild(div);
+
+            let v = Object.keys(data).filter(k => k.endsWith(t));
+            bodyStats.innerHTML += `<tr onclick="hienChiTiet('${t}')" style="cursor:pointer; background:#fff">
+                <td>${t}</td><td>${v.length} ngày</td>
+            </tr>`;
         });
     }
 
-    function toggle(k) { 
+    function hienChiTiet(t) {
         let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
-        data[k] = (data[k]=='X'?'O':'X'); 
-        localStorage.setItem('data_'+currUser, JSON.stringify(data)); 
-        render(); 
+        let v = Object.keys(data).filter(k => k.endsWith(t));
+        if(v.length === 0) alert(t + " đi học đầy đủ.");
+        else {
+            let list = v.map(k => {
+                let d = new Date(k.split('_')[0]);
+                let thu = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"][d.getDay()];
+                let dStr = d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
+                return "- " + thu + ", " + dStr + ": " + data[k];
+            }).join("\n");
+            alert("Chi tiết vắng của " + t + ":\n\n" + list);
+        }
     }
-    
-    function them() { 
-        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]"); 
-        dshs.push(document.getElementById('hsName').value); 
-        localStorage.setItem("dshs_"+currUser, JSON.stringify(dshs)); render(); 
+
+    function toggle(k, label) {
+        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
+        if(data[k]) {
+            if(confirm("Xóa trạng thái ngày " + label + "?")) delete data[k];
+            else return;
+        } else {
+            let lyDo = prompt("Nhập lý do vắng ngày " + label + ":");
+            data[k] = lyDo || "Không lý do";
+        }
+        localStorage.setItem('data_'+currUser, JSON.stringify(data));
+        render();
     }
-    
-    function resetAll() { if(confirm("Xóa sạch toàn bộ dữ liệu?")) { localStorage.removeItem("dshs_"+currUser); localStorage.removeItem("data_"+currUser); render(); } }
+
+    function exportExcel() {
+        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
+        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
+        let csv = "Hoc Sinh,Ngay,Ly Do\n";
+        dshs.forEach(t => {
+            Object.keys(data).filter(k => k.endsWith(t)).forEach(k => {
+                csv += `${t},${k.split('_')[0]},"${data[k]}"\n`;
+            });
+        });
+        let blob = new Blob(["\ufeff", csv], {type: 'text/csv;charset=utf-8'});
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'BaoCao_DiemDanh.csv';
+        a.click();
+    }
+
+    function them() {
+        let val = document.getElementById('hsName').value;
+        if(!val) return;
+        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
+        dshs.push(val);
+        localStorage.setItem("dshs_"+currUser, JSON.stringify(dshs));
+        document.getElementById('hsName').value = "";
+        render();
+    }
+
+    function xoaHs(name) {
+        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
+        dshs = dshs.filter(h => h !== name);
+        localStorage.setItem("dshs_"+currUser, JSON.stringify(dshs));
+        render();
+    }
+
+    function resetAll() { if(confirm("XÓA TẤT CẢ DỮ LIỆU?")) { localStorage.removeItem("dshs_"+currUser); localStorage.removeItem("data_"+currUser); render(); } }
 </script>
 </body>
 </html>
