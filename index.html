@@ -27,8 +27,14 @@
 <div id="app-box" class="container" style="display:none;">
     <input type="text" id="hsName" placeholder="Tên học sinh">
     <button onclick="them()">+ Thêm HS</button>
+    
+    <div style="margin: 10px 0; padding: 10px; background: #efebe9; border-radius: 5px;">
+        <label>Chọn tuần: </label>
+        <input type="week" id="weekPicker" onchange="render()">
+    </div>
+
     <button class="btn-excel" onclick="exportExcel()">💾 Xuất Excel</button>
-    <button class="btn-del-all" onclick="resetAll()">🗑️ XÓA TẤT CẢ HS</button>
+    <button class="btn-del-all" onclick="resetAll()">🗑️ XÓA DỮ LIỆU TUẦN</button>
     <button onclick="location.reload()">Đăng xuất</button>
     
     <table id="tbl">
@@ -36,7 +42,7 @@
         <tbody id="body"></tbody>
     </table>
 
-    <h3>📊 Thống kê chi tiết (Bấm vào tên để xem lý do)</h3>
+    <h3>📊 Thống kê (Bấm vào tên để xem chi tiết)</h3>
     <table id="tbl-stats">
         <thead><tr><th>Tên Học Sinh</th><th>Tổng Số Ngày Vắng</th></tr></thead>
         <tbody id="body-stats"></tbody>
@@ -46,6 +52,14 @@
 <script>
     let currUser = "";
     
+    function setInitialWeek() {
+        let now = new Date();
+        let year = now.getFullYear();
+        let d = new Date(year, 0, 1);
+        let week = Math.ceil((((now - d) / 86400000) + d.getDay() + 1) / 7);
+        document.getElementById('weekPicker').value = year + "-W" + (week < 10 ? "0" + week : week);
+    }
+
     function login() {
         let u = document.getElementById('u').value;
         let p = document.getElementById('p').value;
@@ -54,8 +68,9 @@
             currUser = u;
             document.getElementById('login-box').style.display='none';
             document.getElementById('app-box').style.display='block';
+            setInitialWeek();
             render();
-        } else alert("Sai tài khoản hoặc mật khẩu!");
+        } else alert("Sai tài khoản!");
     }
 
     function reg() {
@@ -68,89 +83,95 @@
         alert("Đăng ký thành công!");
     }
 
-    function getMonday() {
-        let d = new Date();
-        let day = d.getDay(), diff = d.getDate() - day + (day == 0 ? -6 : 1);
-        return new Date(d.setDate(diff));
+    function getMondayOfSelectedWeek() {
+        let w = document.getElementById('weekPicker').value;
+        let year = parseInt(w.substring(0, 4));
+        let week = parseInt(w.substring(6));
+        let simple = new Date(year, 0, 1 + (week - 1) * 7);
+        let dow = simple.getDay();
+        let monday = simple;
+        if (dow <= 4) monday.setDate(simple.getDate() - simple.getDay() + 1);
+        else monday.setDate(simple.getDate() + 8 - simple.getDay());
+        return monday;
     }
 
     function render() {
         let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
-        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
+        let weekKey = document.getElementById('weekPicker').value;
+        let data = JSON.parse(localStorage.getItem("data_"+currUser+"_"+weekKey)||"{}");
         let head = document.getElementById("head"), body = document.getElementById("body");
         let bodyStats = document.getElementById("body-stats");
         
         head.innerHTML = "<th>Tên HS</th>";
         body.innerHTML = ""; bodyStats.innerHTML = "";
         
-        let monday = getMonday();
-        let dates = [];
+        let monday = getMondayOfSelectedWeek();
         let thuList = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
         
-        for(let j=0; j<7; j++) {
+        thuList.forEach((t, i) => {
             let d = new Date(monday);
-            d.setDate(monday.getDate() + j);
-            let dStr = d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
-            dates.push({full: d.toDateString(), label: dStr, thu: thuList[j]});
-            head.innerHTML += `<th>${thuList[j]}<br>${dStr}</th>`;
-        }
+            d.setDate(monday.getDate() + i);
+            head.innerHTML += `<th>${t}<br>${d.getDate()}/${d.getMonth()+1}</th>`;
+        });
 
-        dshs.forEach((t, i) => {
-            let row = `<tr><td>${t} <button onclick="xoaHs('${t}')" style="background:red">x</button></td>`;
-            dates.forEach(d => {
-                let k = d.full + "_" + t;
-                row += `<td onclick="toggle('${k}', '${d.label}')" style="cursor:pointer; color:${data[k]?'red':'black'}">${data[k]?'X':'-'}</td>`;
+        dshs.forEach(hs => {
+            let row = `<tr><td>${hs}</td>`;
+            let count = 0;
+            thuList.forEach((t, i) => {
+                let d = new Date(monday);
+                d.setDate(monday.getDate() + i);
+                let dStr = d.getDate() + '/' + (d.getMonth()+1);
+                let key = hs + "_" + dStr;
+                if(data[key]) count++;
+                row += `<td onclick="toggle('${key}')" style="cursor:pointer; color:red; font-weight:bold">${data[key] ? 'X' : '-'}</td>`;
             });
             body.innerHTML += row + "</tr>";
-
-            let v = Object.keys(data).filter(k => k.endsWith(t));
-            bodyStats.innerHTML += `<tr onclick="hienChiTiet('${t}')" style="cursor:pointer; background:#fff">
-                <td>${t}</td><td>${v.length} ngày</td>
-            </tr>`;
+            bodyStats.innerHTML += `<tr onclick="hienChiTiet('${hs}')" style="cursor:pointer"><td>${hs}</td><td>${count} ngày</td></tr>`;
         });
     }
 
-    function hienChiTiet(t) {
-        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
-        let v = Object.keys(data).filter(k => k.endsWith(t));
-        if(v.length === 0) alert(t + " đi học đầy đủ.");
-        else {
-            let list = v.map(k => {
-                let d = new Date(k.split('_')[0]);
-                let thu = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"][d.getDay()];
-                let dStr = d.getDate().toString().padStart(2,'0') + '/' + (d.getMonth()+1).toString().padStart(2,'0') + '/' + d.getFullYear();
-                return "- " + thu + ", " + dStr + ": " + data[k];
-            }).join("\n");
-            alert("Chi tiết vắng của " + t + ":\n\n" + list);
-        }
+    function hienChiTiet(hs) {
+        let weekKey = document.getElementById('weekPicker').value;
+        let data = JSON.parse(localStorage.getItem("data_"+currUser+"_"+weekKey)||"{}");
+        let list = Object.keys(data).filter(k => k.startsWith(hs+"_"));
+        if(list.length == 0) alert(hs + " đi học đầy đủ.");
+        else alert("Chi tiết vắng của " + hs + ":\n" + list.map(k => k.split('_')[1] + ": " + data[k]).join("\n"));
     }
 
-    function toggle(k, label) {
-        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
-        if(data[k]) {
-            if(confirm("Xóa trạng thái ngày " + label + "?")) delete data[k];
+    function toggle(key) {
+        let weekKey = document.getElementById('weekPicker').value;
+        let data = JSON.parse(localStorage.getItem("data_"+currUser+"_"+weekKey)||"{}");
+        if(data[key]) {
+            if(confirm("Xóa ngày vắng: " + data[key] + "?")) delete data[key];
             else return;
         } else {
-            let lyDo = prompt("Nhập lý do vắng ngày " + label + ":");
-            data[k] = lyDo || "Không lý do";
+            let lyDo = prompt("Nhập lý do vắng:");
+            if(lyDo !== null) data[key] = lyDo || "Không lý do";
+            else return;
         }
-        localStorage.setItem('data_'+currUser, JSON.stringify(data));
+        localStorage.setItem("data_"+currUser+"_"+weekKey, JSON.stringify(data));
         render();
     }
 
     function exportExcel() {
         let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
-        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
-        let csv = "Hoc Sinh,Ngay,Ly Do\n";
-        dshs.forEach(t => {
-            Object.keys(data).filter(k => k.endsWith(t)).forEach(k => {
-                csv += `${t},${k.split('_')[0]},"${data[k]}"\n`;
-            });
+        let weekKey = document.getElementById('weekPicker').value;
+        let data = JSON.parse(localStorage.getItem("data_"+currUser+"_"+weekKey)||"{}");
+        let csv = "Tên HS,T2,T3,T4,T5,T6,T7,CN\n";
+        dshs.forEach(hs => {
+            csv += hs;
+            let monday = getMondayOfSelectedWeek();
+            for(let i=0; i<7; i++){
+                let d = new Date(monday);
+                d.setDate(monday.getDate() + i);
+                csv += "," + (data[hs + "_" + d.getDate() + '/' + (d.getMonth()+1)] || "");
+            }
+            csv += "\n";
         });
         let blob = new Blob(["\ufeff", csv], {type: 'text/csv;charset=utf-8'});
         let a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'BaoCao_DiemDanh.csv';
+        a.download = 'DiemDanh_'+weekKey+'.csv';
         a.click();
     }
 
@@ -164,14 +185,7 @@
         render();
     }
 
-    function xoaHs(name) {
-        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
-        dshs = dshs.filter(h => h !== name);
-        localStorage.setItem("dshs_"+currUser, JSON.stringify(dshs));
-        render();
-    }
-
-    function resetAll() { if(confirm("XÓA TẤT CẢ DỮ LIỆU?")) { localStorage.removeItem("dshs_"+currUser); localStorage.removeItem("data_"+currUser); render(); } }
+    function resetAll() { if(confirm("Xóa toàn bộ dữ liệu tuần này?")) { localStorage.removeItem("data_"+currUser+"_"+document.getElementById('weekPicker').value); render(); } }
 </script>
 </body>
 </html>
