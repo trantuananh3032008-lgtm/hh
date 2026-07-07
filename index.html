@@ -3,543 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Korean Style Attendance Diary (Auto-Save)</title>
+    <title>Trang Điểm Danh Đơn Giản</title>
     <style>
-        /* STYLE PASTEL HÀN QUỐC TỐI GIẢN - TỰ ĐỘNG LƯU TRẠNG THÁI */
-        html, body {
-            background-color: #f7f5f0;
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            color: #4a4a4a;
-        }
-        
-        .wrapper {
-            padding: 15px;
-            max-width: 600px;
-            margin: 0 auto;
-            box-sizing: border-box;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
-        
-        h2 {
-            font-size: 18px;
-            font-weight: 700;
-            color: #5c5247;
-            margin: 5px 0 10px 0;
-            text-align: center;
-        }
-
-        h3 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #6d6255;
-            margin: 15px 0 5px 0;
-            text-align: center;
-        }
-
-        /* Thanh chọn ngày thông minh */
-        .date-controller {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            background: white;
-            padding: 10px;
-            border-radius: 15px;
-            border: 1px solid #ede9e2;
-            box-shadow: 0 4px 10px rgba(92,82,71,0.02);
-            margin-bottom: 12px;
-            box-sizing: border-box;
-        }
-
-        .btn-nav {
-            background-color: #e6dfd5;
-            color: #6d6255;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .current-date-display {
-            font-weight: 700;
-            color: #5c5247;
-            font-size: 14px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .input-date-picker {
-            border: 1px solid #e1dbd2;
-            border-radius: 10px;
-            padding: 2px 5px;
-            font-size: 12px;
-            color: #6d6255;
-            outline: none;
-            cursor: pointer;
-            font-family: inherit;
-        }
-
-        .control-panel {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 12px;
-            width: 100%;
-        }
-
-        .collapsible-btn {
-            background-color: #cbc1b5;
-            color: white;
-            padding: 6px 14px;
-            border: none;
-            border-radius: 15px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .mẹo {
-            font-size: 12px;
-            color: #9c9284;
-            text-align: center;
-            margin-bottom: 12px;
-            background-color: #f0ece6;
-            padding: 6px 12px;
-            border-radius: 10px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        /* Khung quản lý học sinh */
-        .manage-box {
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            width: 100%;
-            box-sizing: border-box;
-            border: 1px solid #ede9e2;
-            box-shadow: 0 4px 15px rgba(92,82,71,0.03);
-            margin-bottom: 15px;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        
-        .input-txt {
-            flex: 1;
-            padding: 8px 14px;
-            border: 1px solid #ebd9d9;
-            background-color: #faf8f5;
-            border-radius: 15px;
-            font-size: 13px;
-            outline: none;
-        }
-        
-        .btn-add {
-            background-color: #c3d6c7;
-            color: #4a5c4e;
-            border: none;
-            padding: 0 20px;
-            border-radius: 15px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
-        .btn-clear-all {
-            background-color: #f2dbdb;
-            color: #8c4f4f;
-            border: none;
-            padding: 8px;
-            border-radius: 15px;
-            font-weight: 600;
-            font-size: 12px;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-        }
-
-        .member-header {
-            font-size: 13px;
-            font-weight: 600;
-            color: #5c5247;
-            border-bottom: 1px solid #ede9e2;
-            padding-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .member-list-container {
-            max-height: 180px; 
-            overflow-y: auto; 
-            margin-top: 5px;
-        }
-
-        .member-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 4px;
-            border-bottom: 1px dashed #f0ece6;
-            font-size: 13px;
-        }
-        
-        .btn-inline-del {
-            background: none;
-            border: none;
-            color: #ba8d8d;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        /* BẢNG ĐIỂM DANH DỌC FULL TÊN */
-        .table-container {
-            width: 100%;
-            background: white;
-            border: 1px solid #ede9e2;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 20px rgba(92,82,71,0.02);
-            overflow: hidden;
-        }
-        
+        h2 { color: #333; }
         table {
             border-collapse: collapse;
-            width: 100%;
+            width: 80%;
+            max-width: 600px;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
         }
-        
         th, td {
             padding: 12px 15px;
-            border-bottom: 1px solid #fcfbfa;
-            font-size: 13px;
-        }
-        
-        th {
-            background-color: #ede9e2;
-            color: #5c5247;
-            font-weight: 600;
             text-align: left;
+            border-bottom: 1px solid #ddd;
         }
-        
-        .td-action {
-            text-align: right;
-            width: 80px;
-        }
-
-        th.th-action {
-            text-align: right;
-            width: 80px;
-        }
-        
-        .student-name {
-            font-weight: 600;
-            color: #4a4a4a;
-        }
-        
-        /* Nút trạng thái điểm danh */
-        .btn-status {
-            padding: 6px 0;
-            border: 1px solid #f0ece6;
-            background-color: #fafaf9;
-            color: #d1c9be;
+        th { background-color: #4CAF50; color: white; }
+        tr:hover { background-color: #f1f1f1; }
+        .btn {
+            padding: 6px 12px;
+            border: none;
             cursor: pointer;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            width: 75px;
-            transition: all 0.1s ease-in-out;
-            text-align: center;
+            border-radius: 4px;
+            font-weight: bold;
         }
+        .btn-present { background-color: #e2e2e2; color: #333; }
+        .btn-absent { background-color: #e2e2e2; color: #333; }
         
-        .btn-present { background-color: #dceddf !important; color: #467350 !important; border-color: #cce3d1 !important; }
-        .btn-absent { background-color: #f7e1e1 !important; color: #a65353 !important; border-color: #edd2d2 !important; }
+        /* Màu khi được chọn */
+        .present { background-color: #2ecc71 !important; color: white; }
+        .absent { background-color: #e74c3c !important; color: white; }
 
-        /* Nút hành động xóa lịch sử */
-        .btn-action {
+        .btn-submit {
+            background-color: #3498db;
             color: white;
             padding: 10px 20px;
-            font-size: 12px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
-            margin: 5px 0 15px 0;
-            box-shadow: 0 4px 10px rgba(92,82,71,0.05);
-            letter-spacing: 0.5px;
-            background-color: #b5ada3;
-            width: auto;
+            font-size: 16px;
+            border-radius: 5px;
         }
-        
-        .th-summary { background-color: #cbc1b5; color: #4a4a4a; }
-        .th-summary-left { background-color: #cbc1b5; color: #4a4a4a; text-align: left;}
-        .count-present { color: #52825d; font-weight: 600; text-align: center; }
-        .count-absent { color: #b05858; font-weight: 600; text-align: center; }
+        .btn-submit:hover { background-color: #2980b9; }
     </style>
 </head>
 <body>
 
-    <div class="wrapper">
-        <h2>🧸 ATTENDANCE DIARY</h2>
-        
-        <div class="date-controller">
-            <button class="btn-nav" onclick="thayDoiNgay(-1)">◀ Ngày trước</button>
-            <div class="current-date-display">
-                <span id="date-text-display">Thứ ..., Ngày 00/00/0000</span>
-                <input type="date" class="input-date-picker" id="date-picker" onchange="chonNgayTuLich(this.value)">
-            </div>
-            <button class="btn-nav" onclick="thayDoiNgay(1)">Ngày sau ▶</button>
-        </div>
+    <h2>📋 DANH SÁCH ĐIỂM DANH LỚP</h2>
 
-        <div class="mẹo">✨ <b>Hệ thống tự động lưu:</b> Click chọn đến đâu lưu luôn đến đó!</div>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Họ và Tên</th>
+                <th>Điểm danh</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Nguyễn Văn A</td>
+                <td>
+                    <button class="btn btn-present" onclick="diemDanh(this, 'present')">Có mặt</button>
+                    <button class="btn btn-absent" onclick="diemDanh(this, 'absent')">Vắng</button>
+                </td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Trần Thị B</td>
+                <td>
+                    <button class="btn btn-present" onclick="diemDanh(this, 'present')">Có mặt</button>
+                    <button class="btn btn-absent" onclick="diemDanh(this, 'absent')">Vắng</button>
+                </td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Lê Văn C</td>
+                <td>
+                    <button class="btn btn-present" onclick="diemDanh(this, 'present')">Có mặt</button>
+                    <button class="btn btn-absent" onclick="diemDanh(this, 'absent')">Vắng</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
-        <div class="control-panel">
-            <button class="collapsible-btn" onclick="toggleManageBox()">⚙️ Edit Student List</button>
-        </div>
-
-        <div class="manage-box" id="manage-box" style="display: none;">
-            <div class="member-header">
-                <span>Danh sách lớp học</span>
-                <span id="student-count" style="color: #8c8275;">(0/50)</span>
-            </div>
-            <div class="member-list-container" id="member-list-ui"></div>
-            <button class="btn-clear-all" onclick="xoaSachTatCaTen()">🗑️ XÓA SẠCH TẤT CẢ TÊN</button>
-            <div class="input-group" style="margin-top: 10px; border-top: 1px solid #ede9e2; padding-top: 8px;">
-                <input type="text" class="input-txt" id="new-student-input" placeholder="Tên học sinh mới...">
-                <button class="btn-add" onclick="themHocSinhMoi()">Thêm</button>
-            </div>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Họ và Tên</th>
-                        <th class="th-action">Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody id="attendance-body"></tbody>
-            </table>
-        </div>
-
-        <h3 id="summary-title">📊 SUMMARY THÁNG HIỆN TẠI</h3>
-        
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th class="th-summary-left">Họ và Tên</th>
-                        <th class="th-summary" style="text-align:center;">Có mặt</th>
-                        <th class="th-summary" style="text-align:center;">Vắng</th>
-                    </tr>
-                </thead>
-                <tbody id="summary-body"></tbody>
-            </table>
-        </div>
-
-        <button class="btn-action" onclick="xoaHetDuLieu()">🔄 Clear All History</button>
-    </div>
+    <button class="btn btn-submit" onclick="hoanThanh()">Xác Nhận Điểm Danh</button>
 
     <script>
-        let danhSachHocSinh = JSON.parse(localStorage.getItem("danhSachHocSinh")) || [];
-        let dataThucTe = JSON.parse(localStorage.getItem("dataThucTe")) || {};
-        
-        let ngayDangChon = new Date();
-
-        function dinhDangNgay(dateObj) {
-            let m = dateObj.getMonth() + 1;
-            let d = dateObj.getDate();
-            let y = dateObj.getFullYear();
-            return `${y}-${m < 10 ? '0'+m : m}-${d < 10 ? '0'+d : d}`;
-        }
-
-        function capNhatThanhHienThiNgay() {
-            const thuTiengViet = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-            let thuText = thuTiengViet[ngayDangChon.getDay()];
-            let d = ngayDangChon.getDate();
-            let m = ngayDangChon.getMonth() + 1;
-            let y = ngayDangChon.getFullYear();
+        // Hàm xử lý khi bấm nút Có mặt / Vắng
+        function diemDanh(button, status) {
+            // Tìm hàng (row) chứa nút vừa bấm
+            let parentTd = button.parentElement;
+            let buttons = parentTd.getElementsByClassName('btn');
             
-            document.getElementById("date-text-display").textContent = `${thuText}, Ngày ${d < 10 ? '0'+d : d}/${m < 10 ? '0'+m : m}/${y}`;
-            document.getElementById("date-picker").value = dinhDangNgay(ngayDangChon);
-        }
-
-        function thayDoiNgay(buocNhay) {
-            ngayDangChon.setDate(ngayDangChon.getDate() + buocNhay);
-            capNhatThanhHienThiNgay();
-            taoGiaoDienDiemDanh();
-            capNhatBangTongHop();
-        }
-
-        function chonNgayTuLich(chuoiNgay) {
-            if(!chuoiNgay) return;
-            ngayDangChon = new Date(chuoiNgay);
-            capNhatThanhHienThiNgay();
-            taoGiaoDienDiemDanh();
-            capNhatBangTongHop();
-        }
-
-        function capNhatGiaoDienQuanLy() {
-            const listUi = document.getElementById("member-list-ui");
-            const countUi = document.getElementById("student-count");
-            listUi.innerHTML = "";
-            countUi.textContent = `(${danhSachHocSinh.length}/50)`;
-
-            if(danhSachHocSinh.length === 0) {
-                listUi.innerHTML = `<div style="color:#b5ada3; text-align:center; padding: 10px; font-size:12px;">Chưa có học sinh.</div>`;
+            // Reset màu của cả 2 nút trong hàng đó về bình thường
+            buttons[0].classList.remove('present');
+            buttons[1].classList.remove('absent');
+            
+            // Thêm màu mới tùy thuộc vào nút được bấm
+            if (status === 'present') {
+                button.classList.add('present');
             } else {
-                danhSachHocSinh.forEach((ten, index) => {
-                    listUi.innerHTML += `
-                        <div class="member-item">
-                            <span>${index + 1}. <b>${ten}</b></span>
-                            <button class="btn-inline-del" onclick="xoaTungHocSinh(${index})">❌</button>
-                        </div>`;
-                });
-            }
-            localStorage.setItem("danhSachHocSinh", JSON.stringify(danhSachHocSinh));
-        }
-
-        function themHocSinhMoi() {
-            if (danhSachHocSinh.length >= 50) return alert("⚠️ Tối đa 50 người!");
-            const input = document.getElementById("new-student-input");
-            const ten = input.value.trim();
-            if (ten === "") return alert("Nhập tên hợp lệ!");
-            danhSachHocSinh.push(ten);
-            input.value = "";
-            capNhatGiaoDienQuanLy();
-            lamMoiToanBo();
-        }
-
-        function xoaTungHocSinh(index) {
-            if(confirm(`Xóa "${danhSachHocSinh[index]}"?`)) {
-                danhSachHocSinh.splice(index, 1);
-                capNhatGiaoDienQuanLy();
-                lamMoiToanBo();
+                button.classList.add('absent');
             }
         }
 
-        function xoaSachTatCaTen() {
-            if(confirm("XÓA TOÀN BỘ tên học sinh?")) {
-                danhSachHocSinh = [];
-                capNhatGiaoDienQuanLy();
-                lamMoiToanBo();
-            }
+        // Hàm xử lý khi bấm nút Xác Nhận
+        function hoanThanh() {
+            alert("Đã ghi nhận điểm danh thành công! (Dữ liệu hiện tại sẽ mất khi bạn tải lại trang vì chưa có cơ sở dữ liệu)");
         }
-
-        function toggleManageBox() {
-            const box = document.getElementById("manage-box");
-            box.style.display = box.style.display === "none" ? "block" : "none";
-        }
-
-        function taoGiaoDienDiemDanh() {
-            const tbody = document.getElementById("attendance-body");
-            tbody.innerHTML = "";
-            
-            if (danhSachHocSinh.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="2" style="color:#b5ada3; padding: 30px; text-align:center;">Hãy bấm nút "⚙️ Edit Student List" để thêm học sinh nha!</td></tr>`;
-                return;
-            }
-
-            let y = ngayDangChon.getFullYear();
-            let m = ngayDangChon.getMonth() + 1;
-            let d = ngayDangChon.getDate();
-            let basicKey = `${y}_${m}_${d}`;
-
-            danhSachHocSinh.forEach(ten => {
-                let key = `${basicKey}_${ten}`;
-                let trangThai = dataThucTe[key];
-                let text = "—";
-                let clazz = "btn-status";
-                
-                if (trangThai === 'present') { text = "Có mặt"; clazz += " btn-present"; }
-                else if (trangThai === 'absent') { text = "Vắng"; clazz += " btn-absent"; }
-                
-                let row = `<tr>
-                    <td class="student-name">${ten}</td>
-                    <td class="td-action">
-                        <button class="${clazz}" onclick="xoayTrangThai(this, '${key}')">${text}</button>
-                    </td>
-                </tr>`;
-                tbody.innerHTML += row;
-            });
-        }
-
-        function xoayTrangThai(button, key) {
-            if (!dataThucTe[key]) {
-                button.textContent = "Có mặt"; button.className = "btn-status btn-present";
-                dataThucTe[key] = 'present';
-            } else if (dataThucTe[key] === 'present') {
-                button.textContent = "Vắng"; button.className = "btn-status btn-absent";
-                dataThucTe[key] = 'absent';
-            } else {
-                button.textContent = "—"; button.className = "btn-status";
-                delete dataThucTe[key];
-            }
-            
-            // LOGIC TỰ ĐỘNG LƯU PHÁT MỘT KHI ĐỔI TRẠNG THÁI
-            localStorage.setItem("dataThucTe", JSON.stringify(dataThucTe));
-            capNhatBangTongHop();
-        }
-
-        function capNhatBangTongHop() {
-            let thang = ngayDangChon.getMonth() + 1;
-            let nam = ngayDangChon.getFullYear();
-            document.getElementById("summary-title").innerHTML = `📊 SUMMARY CẢ THÁNG ${thang}/${nam}`;
-
-            const summaryBody = document.getElementById("summary-body");
-            summaryBody.innerHTML = "";
-            
-            if (danhSachHocSinh.length === 0) {
-                summaryBody.innerHTML = `<tr><td colspan="3" style="color:#b5ada3; padding: 15px; text-align:center;">Chưa có dữ liệu tổng hợp.</td></tr>`;
-                return;
-            }
-
-            danhSachHocSinh.forEach(ten => {
-                let tongCoMat = 0; let tongVang = 0;
-                for (let key in dataThucTe) {
-                    if (key.startsWith(`${nam}_${thang}_`) && key.endsWith(`_${ten}`)) {
-                        if (dataThucTe[key] === 'present') tongCoMat++;
-                        if (dataThucTe[key] === 'absent') tongVang++;
-                    }
-                }
-                let row = `<tr>
-                    <td class="student-name">${ten}</td>
-                    <td class="count-present">🌿 ${tongCoMat} ngày</td>
-                    <td class="count-absent">☕ ${tongVang} ngày</td>
-                </tr>`;
-                summaryBody.innerHTML += row;
-            });
-        }
-
-        function lamMoiToanBo() {
-            taoGiaoDienDiemDanh();
-            capNhatBangTongHop();
-        }
-
-        function xoaHetDuLieu() {
-            if (confirm("Xóa toàn bộ lịch sử điểm danh từ trước tới nay?")) {
-                localStorage.removeItem("dataThucTe");
-                dataThucTe = {};
-                lamMoiToanBo();
-            }
-        }
-
-        capNhatThanhHienThiNgay();
-        capNhatGiaoDienQuanLy();
-        lamMoiToanBo();
     </script>
+
 </body>
 </html>
