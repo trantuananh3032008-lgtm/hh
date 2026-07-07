@@ -2,105 +2,156 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Korean Attendance Pro 🧸</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <title>Coffee Attendance Pro</title>
     <style>
-        :root { --bg: #fdfcf8; --card: #ffffff; --text: #7a7068; --green: #c3d6c7; --pink: #f2dbdb; --border: #f0ede6; }
-        body { background: var(--bg); font-family: sans-serif; color: var(--text); padding: 15px; }
-        .wrapper { max-width: 800px; margin: 0 auto; }
-        .card { background: var(--card); padding: 15px; border-radius: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { padding: 8px; border: 1px solid var(--border); text-align: center; }
-        .btn { border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f3e5d8; color: #4e342e; padding: 15px; }
+        .box { background: #fffaf0; padding: 20px; border-radius: 15px; border: 2px solid #8d6e63; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 850px; margin: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; margin-top: 10px; }
+        th, td { padding: 8px; border: 1px solid #d7ccc8; text-align: center; }
+        th { background: #8d6e63; color: white; }
+        button { background: #6d4c41; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #4e342e; }
+        .btn-del { background: #d32f2f; }
+        .btn-word { background: #1976d2; }
+        .red { color: #d32f2f; font-weight: bold; }
+        .green { color: #388e3c; font-weight: bold; }
+        input { padding: 8px; border: 1px solid #d7ccc8; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<div class="wrapper">
-    <div id="auth-box" class="card" style="text-align:center">
-        <button id="login-btn" onclick="dangNhap()">🔑 Đăng nhập với Google để đồng bộ</button>
-        <span id="user-info"></span>
-    </div>
+<div id="login-box" class="box">
+    <h3>☕ Đăng nhập Cafe Attendance</h3>
+    <input type="text" id="u" placeholder="Tên đăng nhập">
+    <input type="password" id="p" placeholder="Mật khẩu">
+    <button onclick="login()">Đăng nhập</button>
+    <button onclick="reg()">Tạo tài khoản</button>
+</div>
 
-    <div class="card">
-        <button onclick="themHS()">+ Thêm HS</button>
-        <button onclick="xoaTatCa()">✕ Xóa Hết</button>
-    </div>
-
-    <div class="card">
-        <table id="bang-diem-danh">
-            <thead><tr id="head-row"></tr></thead>
-            <tbody id="body-row"></tbody>
-        </table>
-    </div>
+<div id="app-box" class="box" style="display:none;">
+    <input type="text" id="hsName" placeholder="Tên học sinh">
+    <button onclick="them()">+ Thêm</button>
+    <input type="date" id="datePicker" onchange="render()">
+    <button class="btn-del" onclick="resetAll()">Reset</button>
+    <button class="btn-word" onclick="exportWord()">Xuất Word</button>
+    <button onclick="location.reload()">Đăng xuất</button>
+    
+    <table id="tbl" border="1">
+        <thead><tr id="head"></tr></thead>
+        <tbody id="body"></tbody>
+    </table>
+    
+    <div id="stats" style="margin-top:20px;"></div>
 </div>
 
 <script>
-    // --- CẤU HÌNH FIREBASE (Thay bằng config của bạn) ---
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT.appspot.com",
-        messagingSenderId: "YOUR_ID",
-        appId: "YOUR_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    
-    let dshs = [], data = {}, startDay = new Date();
-    startDay.setDate(startDay.getDate() - startDay.getDay() + 1);
+    let currUser = "";
+    let accs = JSON.parse(localStorage.getItem("accs")||"{}");
 
-    // --- LOGIC ĐĂNG NHẬP ---
-    function dangNhap() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider).then(result => {
-            document.getElementById('user-info').innerText = " Xin chào: " + result.user.displayName;
-            loadData();
+    function login() {
+        let u = document.getElementById('u').value;
+        if(accs[u] && accs[u] == document.getElementById('p').value) {
+            currUser = u;
+            document.getElementById('login-box').style.display='none';
+            document.getElementById('app-box').style.display='block';
+            document.getElementById('datePicker').valueAsDate = new Date();
+            render();
+        } else alert("Sai tài khoản!");
+    }
+
+    function reg() { 
+        let u = document.getElementById('u').value;
+        if(u && document.getElementById('p').value) {
+            accs[u] = document.getElementById('p').value; 
+            localStorage.setItem('accs', JSON.stringify(accs)); 
+            alert("Đã tạo tài khoản!"); 
+        } else alert("Vui lòng nhập đủ thông tin!");
+    }
+
+    function getMonday(d) {
+        d = new Date(d);
+        let day = d.getDay(), diff = d.getDate() - day + (day == 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    }
+
+    function exportWord() {
+        let content = "<html><head><meta charset='utf-8'></head><body>";
+        content += "<h3>Báo cáo điểm danh</h3>" + document.getElementById('tbl').outerHTML + "<br>";
+        content += "<h3>Thống kê chi tiết</h3>" + document.getElementById('stats').innerHTML;
+        content += "</body></html>";
+        let blob = new Blob(['\ufeff', content], {type: 'application/msword'});
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = 'Bao_Cao_Diem_Danh.doc';
+        a.click();
+    }
+
+    function showDetail(t) {
+        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
+        let v = Object.keys(data).filter(k => k.endsWith(t) && data[k]=='X');
+        if(v.length === 0) {
+            alert(t + ": Học sinh này chuyên cần!");
+        } else {
+            let days = v.map(k => {
+                let d = new Date(k.split('_')[0]);
+                return (d.getMonth() + 1) + "/" + d.getDate();
+            }).join(', ');
+            alert(t + " vắng " + v.length + " buổi: " + days);
+        }
+    }
+
+    function render() {
+        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
+        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
+        let start = getMonday(document.getElementById('datePicker').value);
+        let head = document.getElementById("head"), body = document.getElementById("body"), stats = document.getElementById("stats");
+        let thu = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+        
+        head.innerHTML = "<th>Học Sinh</th>"; body.innerHTML = ""; stats.innerHTML = "<strong>📊 Danh sách vắng (Bấm vào tên để xem chi tiết):</strong><br>";
+        
+        let dates = [];
+        for(let i=0; i<7; i++) { 
+            let d = new Date(start); d.setDate(start.getDate()+i); dates.push(d); 
+            head.innerHTML += `<th>${thu[i]}<br>${(d.getMonth()+1)}/${d.getDate()}</th>`; 
+        }
+        
+        dshs.forEach((t, i) => {
+            let row = `<tr><td>${t} <span onclick="xoaHS(${i})" style="color:red;cursor:pointer;font-weight:bold">x</span></td>`;
+            dates.forEach(d => { 
+                let k=`${d.toDateString()}_${t}`; 
+                row += `<td onclick="toggle('${k}')">${data[k]||'-'}</td>`; 
+            });
+            body.innerHTML += row + "</tr>";
+            
+            let v = Object.keys(data).filter(k => k.endsWith(t) && data[k]=='X');
+            let div = document.createElement('div');
+            div.style.cssText = "cursor:pointer; padding:8px; margin-top:5px; background:#fff; border-radius:5px; border-left:4px solid #8d6e63";
+            div.innerHTML = `${t}: ${v.length > 0 ? '<b class="red">'+v.length+' buổi vắng</b>' : '<b class="green">Chuyên cần</b>'}`;
+            div.onclick = () => showDetail(t);
+            stats.appendChild(div);
         });
     }
 
-    // --- TẢI & LƯU DỮ LIỆU ---
-    function saveData() {
-        const user = firebase.auth().currentUser;
-        if(user) {
-            db.collection("data").doc(user.uid).set({ dshs, data });
-        }
+    function toggle(k) { 
+        let data = JSON.parse(localStorage.getItem("data_"+currUser)||"{}");
+        data[k] = (data[k]=='X'?'O':'X'); 
+        localStorage.setItem('data_'+currUser, JSON.stringify(data)); 
+        render(); 
     }
-
-    function loadData() {
-        const user = firebase.auth().currentUser;
-        if(user) {
-            db.collection("data").doc(user.uid).get().then(doc => {
-                if(doc.exists) {
-                    dshs = doc.data().dshs;
-                    data = doc.data().data;
-                    render();
-                }
-            });
-        }
-    }
-
-    // --- RENDER & LOGIC CŨ ---
-    function render() {
-        let head = document.getElementById("head-row"), body = document.getElementById("body-row");
-        head.innerHTML = "<th>HS</th>"; body.innerHTML = "";
-        // Vẽ bảng... (đầy đủ như các bước trước)
-        saveData();
-    }
-
-    function toggle(k) {
-        data[k] = data[k] === 'present' ? 'absent' : 'present';
-        render();
-    }
-
-    function themHS() { let n = prompt("Tên:"); if(n) { dshs.push(n); render(); } }
-    function xoaTatCa() { dshs = []; render(); }
     
-    render();
+    function xoaHS(i) {
+        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
+        dshs.splice(i,1); localStorage.setItem("dshs_"+currUser, JSON.stringify(dshs)); render();
+    }
+    
+    function them() { 
+        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]"); 
+        dshs.push(document.getElementById('hsName').value); 
+        localStorage.setItem("dshs_"+currUser, JSON.stringify(dshs)); render(); 
+    }
+    
+    function resetAll() { if(confirm("Xóa sạch toàn bộ dữ liệu của tài khoản này?")) { localStorage.removeItem("dshs_"+currUser); localStorage.removeItem("data_"+currUser); render(); } }
 </script>
 </body>
 </html>
