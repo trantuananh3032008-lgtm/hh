@@ -33,7 +33,7 @@
         <input type="week" id="weekPicker" onchange="render()">
     </div>
 
-    <button class="btn-excel" onclick="exportExcel()">💾 Xuất Excel</button>
+    <button class="btn-excel" onclick="exportExcel()">💾 Xuất Excel Cả Tháng</button>
     <button class="btn-del-all" onclick="resetAll()">🗑️ XÓA DỮ LIỆU TUẦN</button>
     <button class="btn-del-all" onclick="xoaTatCaHS()">🗑️ XÓA TOÀN BỘ HS</button>
     <button onclick="location.reload()">Đăng xuất</button>
@@ -43,9 +43,9 @@
         <tbody id="body"></tbody>
     </table>
 
-    <h3>📊 Thống kê (Bấm vào tên để xem chi tiết)</h3>
+    <h3>📊 Thống kê (Bấm vào tên để xem chi tiết tháng)</h3>
     <table id="tbl-stats">
-        <thead><tr><th>Tên Học Sinh</th><th>Tổng Số Ngày Vắng</th></tr></thead>
+        <thead><tr><th>Tên Học Sinh</th><th>Số ngày vắng (Tháng hiện tại)</th></tr></thead>
         <tbody id="body-stats"></tbody>
     </table>
 </div>
@@ -119,18 +119,84 @@
             let row = `<tr><td style="text-align:left">
                 <button onclick="xoaHS('${hs}')" style="background:#d32f2f; padding:2px 5px; font-size:10px">X</button> 
                 ${hs}</td>`;
-            let count = 0;
+            
             thuList.forEach((t, i) => {
                 let d = new Date(monday);
                 d.setDate(monday.getDate() + i);
                 let dStr = d.getDate() + '/' + (d.getMonth()+1);
                 let key = hs + "_" + dStr;
-                if(data[key]) count++;
                 row += `<td onclick="toggle('${key}')" style="cursor:pointer; color:red; font-weight:bold">${data[key] ? 'X' : '-'}</td>`;
             });
             body.innerHTML += row + "</tr>";
-            bodyStats.innerHTML += `<tr onclick="hienChiTiet('${hs}')" style="cursor:pointer"><td>${hs}</td><td>${count} ngày</td></tr>`;
+            
+            // Thống kê tháng
+            let countThang = tinhVangThang(hs);
+            bodyStats.innerHTML += `<tr onclick="hienChiTiet('${hs}')" style="cursor:pointer"><td>${hs}</td><td>${countThang} ngày</td></tr>`;
         });
+    }
+
+    function tinhVangThang(hs) {
+        let count = 0;
+        let currentMonth = new Date().getMonth() + 1;
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith("data_" + currUser + "_")) {
+                let data = JSON.parse(localStorage.getItem(key));
+                Object.keys(data).forEach(k => {
+                    if (k.startsWith(hs + "_")) {
+                        let m = parseInt(k.split('_')[1].split('/')[1]);
+                        if (m === currentMonth) count++;
+                    }
+                });
+            }
+        }
+        return count;
+    }
+
+    function hienChiTiet(hs) {
+        let currentMonth = new Date().getMonth() + 1;
+        let details = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if (key.startsWith("data_" + currUser + "_")) {
+                let data = JSON.parse(localStorage.getItem(key));
+                Object.keys(data).forEach(k => {
+                    if (k.startsWith(hs + "_")) {
+                        let dateParts = k.split('_')[1].split('/');
+                        if (parseInt(dateParts[1]) === currentMonth) {
+                            details.push(dateParts[0] + "/" + dateParts[1] + ": " + data[k]);
+                        }
+                    }
+                });
+            }
+        }
+        alert("Chi tiết vắng tháng " + currentMonth + " của " + hs + ":\n" + (details.length ? details.join("\n") : "Không vắng ngày nào."));
+    }
+
+    function exportExcel() {
+        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
+        let month = new Date().getMonth() + 1;
+        let csv = "Tên HS,Danh sách ngày vắng (Tháng " + month + ")\n";
+        dshs.forEach(hs => {
+            let vangList = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                if (key.startsWith("data_" + currUser + "_")) {
+                    let data = JSON.parse(localStorage.getItem(key));
+                    Object.keys(data).forEach(k => {
+                        if (k.startsWith(hs + "_") && parseInt(k.split('_')[1].split('/')[1]) === month) {
+                            vangList.push(k.split('_')[1]);
+                        }
+                    });
+                }
+            }
+            csv += hs + "," + vangList.join("; ") + "\n";
+        });
+        let blob = new Blob(["\ufeff", csv], {type: 'text/csv;charset=utf-8'});
+        let a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'ThongKeThang' + month + '.csv';
+        a.click();
     }
 
     function them() {
@@ -152,7 +218,7 @@
     }
 
     function xoaTatCaHS() {
-        if(confirm("CẢNH BÁO: Bạn muốn xóa toàn bộ danh sách học sinh?")) {
+        if(confirm("CẢNH BÁO: Xóa toàn bộ học sinh?")) {
             localStorage.removeItem("dshs_"+currUser);
             render();
         }
@@ -173,37 +239,7 @@
         render();
     }
 
-    function hienChiTiet(hs) {
-        let weekKey = document.getElementById('weekPicker').value;
-        let data = JSON.parse(localStorage.getItem("data_"+currUser+"_"+weekKey)||"{}");
-        let list = Object.keys(data).filter(k => k.startsWith(hs+"_"));
-        if(list.length == 0) alert(hs + " đi học đầy đủ.");
-        else alert("Chi tiết vắng của " + hs + ":\n" + list.map(k => k.split('_')[1] + ": " + data[k]).join("\n"));
-    }
-
-    function resetAll() { if(confirm("Xóa toàn bộ dữ liệu tuần này?")) { localStorage.removeItem("data_"+currUser+"_"+document.getElementById('weekPicker').value); render(); } }
-
-    function exportExcel() {
-        let dshs = JSON.parse(localStorage.getItem("dshs_"+currUser)||"[]");
-        let weekKey = document.getElementById('weekPicker').value;
-        let data = JSON.parse(localStorage.getItem("data_"+currUser+"_"+weekKey)||"{}");
-        let csv = "Tên HS,T2,T3,T4,T5,T6,T7,CN\n";
-        dshs.forEach(hs => {
-            csv += hs;
-            let monday = getMondayOfSelectedWeek();
-            for(let i=0; i<7; i++){
-                let d = new Date(monday);
-                d.setDate(monday.getDate() + i);
-                csv += "," + (data[hs + "_" + d.getDate() + '/' + (d.getMonth()+1)] || "");
-            }
-            csv += "\n";
-        });
-        let blob = new Blob(["\ufeff", csv], {type: 'text/csv;charset=utf-8'});
-        let a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'DiemDanh_'+weekKey+'.csv';
-        a.click();
-    }
+    function resetAll() { if(confirm("Xóa dữ liệu tuần này?")) { localStorage.removeItem("data_"+currUser+"_"+document.getElementById('weekPicker').value); render(); } }
 </script>
 </body>
 </html>
